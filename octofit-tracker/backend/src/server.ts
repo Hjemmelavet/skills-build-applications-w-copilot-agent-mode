@@ -1,9 +1,9 @@
 import express from 'express';
-import mongoose from 'mongoose';
+import { connectToDatabase } from './config/database.js';
+import { Activity, LeaderboardEntry, Team, User, Workout } from './models/index.js';
 
 const app = express();
 const port = Number(process.env.PORT || 8000);
-const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/octofit_db';
 const codespaceName = process.env.CODESPACE_NAME;
 const baseUrl = codespaceName
   ? `https://${codespaceName}-8000.app.github.dev`
@@ -11,94 +11,72 @@ const baseUrl = codespaceName
 
 app.use(express.json());
 
-const users = [
-  { id: '1', name: 'Ava', email: 'ava@example.com' },
-  { id: '2', name: 'Ben', email: 'ben@example.com' },
-];
-
-const teams = [
-  { id: '1', name: 'NightRunners' },
-  { id: '2', name: 'PeakPals' },
-];
-
-const activities = [
-  { id: '1', type: 'Run', duration: 30, calories: 320 },
-  { id: '2', type: 'Cycle', duration: 45, calories: 410 },
-];
-
-const leaderboard = [
-  { id: '1', name: 'Ava', score: 980 },
-  { id: '2', name: 'Ben', score: 940 },
-];
-
-const workouts = [
-  { id: '1', title: 'HIIT Cardio', difficulty: 'Intermediate' },
-  { id: '2', title: 'Core Strength', difficulty: 'Beginner' },
-];
-
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', apiUrl: baseUrl });
 });
 
-app.get('/api/users/', (_req, res) => {
+app.get('/api/users/', async (_req, res) => {
+  const users = await User.find({}).lean();
   res.json(users);
 });
 
-app.post('/api/users/', (req, res) => {
-  const user = { id: `${users.length + 1}`, ...req.body };
-  users.push(user);
+app.post('/api/users/', async (req, res) => {
+  const user = await User.create(req.body);
   res.status(201).json(user);
 });
 
-app.get('/api/teams/', (_req, res) => {
+app.get('/api/teams/', async (_req, res) => {
+  const teams = await Team.find({}).lean();
   res.json(teams);
 });
 
-app.post('/api/teams/', (req, res) => {
-  const team = { id: `${teams.length + 1}`, ...req.body };
-  teams.push(team);
+app.post('/api/teams/', async (req, res) => {
+  const team = await Team.create(req.body);
   res.status(201).json(team);
 });
 
-app.get('/api/activities/', (_req, res) => {
+app.get('/api/activities/', async (_req, res) => {
+  const activities = await Activity.find({}).lean();
   res.json(activities);
 });
 
-app.post('/api/activities/', (req, res) => {
-  const activity = { id: `${activities.length + 1}`, ...req.body };
-  activities.push(activity);
+app.post('/api/activities/', async (req, res) => {
+  const activity = await Activity.create(req.body);
   res.status(201).json(activity);
 });
 
-app.get('/api/leaderboard/', (_req, res) => {
+app.get('/api/leaderboard/', async (_req, res) => {
+  const leaderboard = await LeaderboardEntry.find({}).lean();
   res.json(leaderboard);
 });
 
-app.post('/api/leaderboard/', (req, res) => {
-  const entry = { id: `${leaderboard.length + 1}`, ...req.body };
-  leaderboard.push(entry);
+app.post('/api/leaderboard/', async (req, res) => {
+  const entry = await LeaderboardEntry.create(req.body);
   res.status(201).json(entry);
 });
 
-app.get('/api/workouts/', (_req, res) => {
+app.get('/api/workouts/', async (_req, res) => {
+  const workouts = await Workout.find({}).lean();
   res.json(workouts);
 });
 
-app.post('/api/workouts/', (req, res) => {
-  const workout = { id: `${workouts.length + 1}`, ...req.body };
-  workouts.push(workout);
+app.post('/api/workouts/', async (req, res) => {
+  const workout = await Workout.create(req.body);
   res.status(201).json(workout);
 });
 
-mongoose.connect(mongoUri)
-  .then(() => {
+async function startServer() {
+  try {
+    await connectToDatabase();
     console.log('MongoDB connected');
     app.listen(port, () => {
       console.log(`Backend listening on port ${port}`);
       console.log(`API base URL: ${baseUrl}`);
     });
-  })
-  .catch((error) => {
+  } catch (error) {
     console.error('MongoDB connection failed', error);
     process.exit(1);
-  });
+  }
+}
+
+startServer();
